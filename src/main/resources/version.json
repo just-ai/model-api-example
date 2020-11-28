@@ -1,0 +1,4 @@
+{
+  "projectArtifactId": "@project.artifactId@",
+  "projectVersion": "@project.version@"
+}

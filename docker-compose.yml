@@ -1,0 +1,7 @@
+version: "3.8"
+services:
+  model_api_service:
+    build: .
+    ports:
+      - "9320:8080"
+    image: model_api_service
