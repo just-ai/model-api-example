@@ -1,0 +1,163 @@
+openapi: 3.0.0
+info:
+  title: External NLU API
+  version: 0.0.0
+
+tags:
+  - name: Nlu
+    description: NLU methods.
+
+paths:
+  /process-text:
+    post:
+      operationId: processText
+      tags:
+        - Nlu
+      description: Text processing method. It performs markup and spelling correction (if it is possible for the given language and set in method body).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TextPreprocessorRequestData"
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextPreprocessorResponseData"
+        '400':
+          description: Request body is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    TextPreprocessorRequestData:
+      properties:
+        documents:
+          type: array
+          title: Documents
+          description: List of documents to be processed.
+          default: [ ]
+          example:
+            - hello how are you
+            - hi i'm fine thanks
+          items:
+            type: string
+        language:
+          type: string
+          title: Language
+          description: Documents language.
+          example: en
+        engine:
+          type: string
+          title: Engine
+          description: Engine for text processing (tokenizing, pos-tagging and lemmatizing).
+          example: udpipe
+        markPatterns:
+          type: boolean
+          title: Mark patterns
+          description: Is marking patterns expected. If set to true, all the structures in text that consist of symbol `$` and english text after it are recognized as patterns
+          default: false
+        fixSpells:
+          type: boolean
+          title: Fix spells
+          description: Is spelling correction should be performed.
+          default: false
+          example: true
+        additionalParams:
+          type: object
+          description: Map of additional parameters, may be set in project extended settings for action `markup`.
+          additionalProperties:
+            type: string
+
+      required:
+        - documents
+        - language
+        - engine
+        - fix_spells
+
+    TextPreprocessorResponseData:
+      properties:
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarkupData'
+
+    MarkupData:
+      properties:
+        source:
+          description: Source text.
+          type: string
+        correctedText:
+          description: Corrected text. If spelling correction is disabled, it should be equal to source text.
+          type: string
+        words:
+          description: List of phrase tokens.
+          type: array
+          items:
+            $ref: '#/components/schemas/WordMarkupData'
+      required:
+        - source
+        - words
+
+    WordMarkupData:
+      properties:
+        annotations:
+          type: object
+          properties:
+            lemma:
+              description: Word's lemma.
+              type: string
+            pos:
+              description: Word's part of speech. The format is up to external NLU service implementation as the JAICP does not require any specific formatting for POS-tagging identifiers.
+              type: string
+        startPos:
+          description: An index of a word first symbol in source text phrase. For example, the startPos of word `how` in phrase `hello, how are you` is 6.
+          type: integer
+        endPos:
+          description: An index of a word last symbol in source text phrase. For example, the endPos of word `how` in phrase `hello, how are you` is 10.
+          type: integer
+        pattern:
+          description: Is this word a pattern or not. Please refer to field `markPatterns` in TextPreprocessorRequestData.
+          type: boolean
+        punctuation:
+          description: Is this word a punctuation symbol or not. For example, if we tokenize a phrase `hello, how are you` and get a second token, which is `,`, this flag will be set to true for this token.
+          type: boolean
+        source:
+          description: Source word text.
+          type: string
+        word:
+          description: Spelled and lowercased word text.
+          type: string
+      required:
+        - startPos
+        - endPos
+        - source
+        - word
+
+    ErrorResponse:
+      properties:
+        error:
+          description: An error that is assumed as the most important from all the error that occured during the request processing.
+          $ref: '#/components/schemas/ApiError'
+        errors:
+          description: List of error that occured during the request processing. Includes the main error (see `error` property).
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiError'
+
+
+    ApiError:
+      properties:
+        code:
+          type: String
+          description: Error code that uniquely identifies the error.
+        message:
+          type: object
+          description: Map of error messages, where the key is the error language ("en", "ru", etc.) and the value is the message. CAILA chooses message language by project language. If it is absent in the map, it will choose message with `en` locale. If the message with `en` locale is absent too, it will choose any message. If the map is empty, CAILA will use default error message in english.
+          additionalProperties:
+            type: string
