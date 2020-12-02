@@ -32,6 +32,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /ner:
+    post:
+      operationId: ner
+      tags:
+        - Nlu
+      description: Performs named entity recognition.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NerRequestData"
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NerResponseData"
+        '400':
+          description: Request body is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  "/classifiers/{classifierName}/predictnbest/{modelId}":
+    post:
+      operationId: predict
+      tags:
+        - Nlu
+      parameters:
+        - name: classifierName
+          in: path
+          description: Classifier unique name.
+          required: true
+          schema:
+            type: string
+        - name: modelId
+          in: path
+          description: ID of trained classifier model.
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictRequestData"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictResponseData"
+        '404':
+          description: Classifier with specified name or model ID not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '400':
+          description: Request body is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -122,7 +188,7 @@ components:
           description: An index of a word last symbol in source text phrase. For example, the endPos of word `how` in phrase `hello, how are you` is 10.
           type: integer
         pattern:
-          description: Is this word a pattern or not. Please refer to field `markPatterns` in TextPreprocessorRequestData.
+          description: Is this word a pattern or not. Please refer to field `mark_patterns` in TextPreprocessorRequestData.
           type: boolean
         punctuation:
           description: Is this word a punctuation symbol or not. For example, if we tokenize a phrase `hello, how are you` and get a second token, which is `,`, this flag will be set to true for this token.
@@ -138,6 +204,98 @@ components:
         - endPos
         - source
         - word
+    NerRequestData:
+      properties:
+        language:
+          type: string
+          title: Language
+          description: Language (ru, en etc.).
+          example: en
+        texts:
+          type: array
+          title: Texts
+          description: Texts to be processed.
+          default: []
+          example: tomorrow at 13 a.m.
+          items:
+            type: string
+        additionalParams:
+          type: object
+          description: Map of additional parameters, may be set in project extended settings for action `ner`.
+          additionalProperties:
+            type: string
+
+    NerResponseData:
+      properties:
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/NerMarkupItems'
+      type: object
+
+    NerMarkupItems:
+      type: object
+      properties:
+        text:
+          description: Source phrase text.
+          type: string
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/NerItemData'
+
+    NerItemData:
+      properties:
+        startPos:
+          type: integer
+          description: An index of a word first symbol in source text phrase. For example, the startPos of word `how` in phrase `hello, how are you` is 6.
+        endPos:
+          type: integer
+          description: An index of a word last symbol in source text phrase. For example, the endPos of word `how` in phrase `hello, how are you` is 10.
+        entity:
+          type: string
+          description: Entity name.
+        text:
+          type: string
+          description: Substring of an original string where the entity was found.
+        value:
+          type: string
+          description: Value associated with found entity. For example, if we have an entity that identifies amount of money, for source phrase `i have two dollars` we would recognize this entity in substring `two dollars` and an associated value might be `2`. By default you may just put value of a `text` field.
+
+    PredictRequestData:
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                description: Text that should be classified.
+        additionalParams:
+          type: object
+          description: Map of additional parameters, may be set in project extended settings for action `classification`.
+          additionalProperties:
+            type: string
+
+    PredictResponseData:
+      properties:
+        result:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/PredictedClassData'
+
+    PredictedClassData:
+      properties:
+        class:
+          type: string
+          description: Class unique identifier.
+        score:
+          type: number
+          description: Class score.
+          format: double
 
     ErrorResponse:
       properties:
