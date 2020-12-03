@@ -20,12 +20,12 @@ Following requirements will be installed automatically if you choose to run the 
 ​
 ## Installation
 - Create a dialogflow project;
-- Fill in the intents, each intent must have single-request-lasting output context;
+- Fill in the intents, each intent must have a single output context with a lifetime of 1 request;
 - Create a service account in a Google Cloud Platform project associated with Dialogflow project;
 - Download the service account key as JSON and place it inside the microservice credentials folder (by default it's named "creds")
 - Fill in the configuration files (description below)
 - Run in docker:
-    - Run `mvn repackage`
+    - Run `mvn package`
     - Run `docker compose up`
 - Run without docker:
     - Run `mvn spring-boot:run`
